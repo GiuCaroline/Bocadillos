@@ -9,7 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "expo": "~54.0.33",
+    "expo": "~54.0.29",
     "expo-status-bar": "~3.0.9",
     "nativewind": "^4.2.3",
     "phosphor-react-native": "^3.0.4",
