@@ -1,10 +1,9 @@
 import { View, Text } from 'react-native';
 
-
 export function Login() {
     return(
-        <View>
-            <Text>oii</Text>
+        <View className="flex-1 items-center justify-center bg-background">
+            <Text className="text-white text-2xl font-bold">oii</Text>
         </View>
     )
 }
