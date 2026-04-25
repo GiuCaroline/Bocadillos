@@ -5,9 +5,9 @@ import { useNavigation } from '@react-navigation/native';
 export function NavTop(){
   const navigation = useNavigation();
     return(
-        <View className='bg-marron w-full h-32 justify-end px-[2%] pb-4'>
+        <View className='bg-marron w-full h-[100px] justify-end px-[2%] pb-4'>
             <View className='flex-row items-center justify-between px-[2%]'>
-                <Text className="text-laranja text-4xl font-montserrat-extrabold">BOCA
+                <Text className="text-laranja text-3xl font-montserrat-extrabold">BOCA
                     <Text className='text-branco'>DILLOS</Text>
                 </Text>
 

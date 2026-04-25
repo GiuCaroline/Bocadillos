@@ -7,7 +7,8 @@ module.exports = {
         background: "#F5E6CA",
         marron: "#4E342E",
         laranja: "#F57C00",
-        branco: "#FAFAFA"
+        branco: "#FAFAFA",
+        cinza: "#2e2e2e"
       },
       fontFamily: {
         montserrat: ['Montserrat_400Regular'],
