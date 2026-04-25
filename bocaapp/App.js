@@ -16,6 +16,7 @@ import {
 } from '@expo-google-fonts/montserrat';
 
 import { Login } from './src/screens/Login';
+import { Cadastro } from './src/screens/Cadastro';
 import { Esqueci } from './src/screens/Esqueci';
 import { Home } from './src/screens/Home';
 
@@ -42,6 +43,7 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator>
         <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
+        <Stack.Screen name="Cadastro" component={Cadastro} options={{ headerShown: false }} />
         <Stack.Screen name="Esqueci" component={Esqueci} options={{ headerShown: false }} />
         <Stack.Screen name="Home" component={Home} options={{ headerShown: false }} />
       </Stack.Navigator>
