@@ -28,7 +28,7 @@ export function Especial(){
                 <CaminhoCustom currentStep={currentStep} moveStep={goToStep} />
             </View>
 
-            <View className="p-6 flex-1 w-full bg-white dark:bg-[#1a1a1a]">
+            <View className="p-6 flex-1 w-full">
                 {steps[currentStep] === "Passo1" && <Passo1 moveStep={goToStep} />}
                 {steps[currentStep] === "Passo2" && <Passo2 moveStep={goToStep} />}
                 {steps[currentStep] === "Passo3" && <Passo3 moveStep={goToStep} />}
