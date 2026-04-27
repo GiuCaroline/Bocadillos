@@ -53,7 +53,7 @@ function Tab({ label, icon: Icon, active, onPress }) {
         <Icon
             size={24}
             weight={active ? "fill" : "light"}
-            className="text-cinza"
+            className="font-cinza"
         />
 
         <Text className="text-[11px] text-cinza font-montserrat">
