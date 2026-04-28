@@ -15,6 +15,14 @@ export function Especial(){
     const [currentStep, setCurrentStep] = useState(0);
     const steps = ["Passo1", "Passo2", "Passo3", "Passo4"];
 
+    const [quantity, setQuantity] = useState(1);
+    const [customCart, setCustomCart] = useState({
+        quantity: 1,
+        package: { package_size: 10, package_price: 0, package_name: 'Pequeno' },
+        description: '',
+        flavors: []
+    });
+
     function goToStep(stepIndex) {
         if (stepIndex >= 0 && stepIndex < steps.length) {
         setCurrentStep(stepIndex);
@@ -22,23 +30,24 @@ export function Especial(){
     }
 
     return (
-        <ScrollView className="flex-1 min-h-screen bg-background">  
+        <View className="flex-1 bg-background">
             <NavTop />
+            
             <View className="mt-10 w-full items-center">
                 <CaminhoCustom currentStep={currentStep} moveStep={goToStep} />
             </View>
 
-            <View className="p-6 flex-1 w-full">
-                {steps[currentStep] === "Passo1" && <Passo1 moveStep={goToStep} />}
-                {steps[currentStep] === "Passo2" && <Passo2 moveStep={goToStep} />}
-                {steps[currentStep] === "Passo3" && <Passo3 moveStep={goToStep} />}
-                {steps[currentStep] === "Passo4" && <Passo4 moveStep={goToStep} />}
+            <View className="flex-1 w-full pb-[80px]">
+                {steps[currentStep] === "Passo1" && <Passo1 moveStep={goToStep} customCart={customCart} setCustomCart={setCustomCart} quantity={quantity} setQuantity={setQuantity} />}
+                {steps[currentStep] === "Passo2" && <Passo2 moveStep={goToStep} customCart={customCart} setCustomCart={setCustomCart} quantity={quantity} setQuantity={setQuantity} />}
+                {steps[currentStep] === "Passo3" && <Passo3 moveStep={goToStep} customCart={customCart} setCustomCart={setCustomCart} quantity={quantity} setQuantity={setQuantity} />}
+                {steps[currentStep] === "Passo4" && <Passo4 moveStep={goToStep} customCart={customCart} setCustomCart={setCustomCart} quantity={quantity} setQuantity={setQuantity} />}
             </View>
             
             <Nav
                 active="Especial"
                 onChange={(r) => navigation.navigate(r)}
             />
-        </ScrollView>
+        </View>
     );
 }
