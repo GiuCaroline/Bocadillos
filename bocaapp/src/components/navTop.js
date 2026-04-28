@@ -12,7 +12,7 @@ export function NavTop(){
                 </Text>
 
                 <TouchableOpacity
-                    onPress={() => navigation.navigate('Home')}
+                    onPress={() => navigation.navigate('Carrinho')}
                     activeOpacity={0.9}
                 >
                     <ShoppingCart className='' color="#FAFAFA" size={26} />

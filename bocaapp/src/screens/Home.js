@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Text, View, ScrollView, StyleSheet, TouchableOpacity, Image } from "react-native";
+import { Text, View, ScrollView, StyleSheet, TouchableOpacity, Image, Alert } from "react-native";
 import { NavTop } from "../components/navTop";
 import { Nav } from "../components/nav";
 import { useNavigation } from '@react-navigation/native';
 import { CaretRight, Sparkle, Plus, Minus } from 'phosphor-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function Home(){
   const navigation = useNavigation();
@@ -22,6 +23,29 @@ export function Home(){
 
   const toggleTipo = (id, tipo) => {
     setTipoSelecionado(prev => ({ ...prev, [id]: tipo }));
+  };
+
+  const adicionarAoCarrinho = async (item) => {
+    const tipo = getTipo(item.id) === 'unidade' ? 'unit' : 'package';
+    const qtd = getQtd(item.id) > 0 ? getQtd(item.id) : 1; 
+
+    try {
+        const existingCart = await AsyncStorage.getItem('cart');
+        let cart = existingCart ? JSON.parse(existingCart) : [];
+
+        const itemIndex = cart.findIndex(c => c.id === item.id && c.size === tipo);
+        if (itemIndex > -1) {
+            cart[itemIndex].quantity += qtd;
+        } else {
+            cart.push({ id: item.id, size: tipo, quantity: qtd });
+        }
+
+        await AsyncStorage.setItem('cart', JSON.stringify(cart));
+        Alert.alert('Sucesso!', `${qtd}x ${item.nome} (${tipo === 'unit' ? 'Unidade' : 'Pacote'}) adicionado(s) ao carrinho!`);
+        setQuantidades(prev => ({ ...prev, [item.id]: 0 })); 
+    } catch (error) {
+        Alert.alert('Erro', 'Não foi possível adicionar ao carrinho.');
+    }
   };
 
   const destaques = [
@@ -123,6 +147,7 @@ export function Home(){
                                 </View>
                                 
                                 <TouchableOpacity
+                                    onPress={() => adicionarAoCarrinho(item)}
                                     className='bg-laranja rounded-[20px] p-1 w-full mt-[5%] items-center justify-center' 
                                 >
                                     <Text className='font-montserrat text-branco text-[12px]'>Adicionar ao carrinho</Text>
