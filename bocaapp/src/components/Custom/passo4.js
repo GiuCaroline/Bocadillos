@@ -1,6 +1,8 @@
 import React, { useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, Animated, PanResponder, StyleSheet, Dimensions, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, Animated, PanResponder, StyleSheet, Dimensions, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Plus, Minus, FileImage } from "phosphor-react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BOTTOM_SHEET_MAX_HEIGHT = SCREEN_HEIGHT * 0.75;
@@ -9,6 +11,7 @@ const MAX_UPWARD_TRANSLATE_Y = 0;
 const MAX_DOWNWARD_TRANSLATE_Y = BOTTOM_SHEET_MAX_HEIGHT - BOTTOM_SHEET_MIN_HEIGHT;
 
 export function Passo4({ moveStep, customCart, setCustomCart, quantity, setQuantity }) {
+    const navigation = useNavigation();
 
     let customTax = customCart.base ? ((customCart.base.price * 0.25) * customCart.package.package_size) : 0;
     let packPrice = customCart.base ?
@@ -79,6 +82,16 @@ export function Passo4({ moveStep, customCart, setCustomCart, quantity, setQuant
     const closeSheet = () => {
         Animated.spring(animatedValue, { toValue: MAX_DOWNWARD_TRANSLATE_Y, useNativeDriver: true, friction: 8, tension: 50 }).start();
         lastGestureDy.current = MAX_DOWNWARD_TRANSLATE_Y;
+    };
+
+    const finalizarCriacao = async () => {
+        try {
+            await AsyncStorage.setItem('customCart', JSON.stringify({ ...customCart, quantity }));
+            Alert.alert('Sucesso!', 'Seu salgado customizado foi adicionado ao carrinho!');
+            navigation.navigate('Carrinho');
+        } catch (error) {
+            Alert.alert('Erro', 'Não foi possível salvar sua criação.');
+        }
     };
 
     return (
@@ -159,7 +172,7 @@ export function Passo4({ moveStep, customCart, setCustomCart, quantity, setQuant
                                 <Text className='text-branco font-montserrat-bold'>Voltar</Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity disabled className='flex-1 h-12 justify-center items-center bg-laranja opacity-50 rounded-full'>
+                            <TouchableOpacity onPress={openSheet} className='flex-1 h-12 justify-center items-center bg-laranja rounded-full'>
                                 <Text className='text-branco font-montserrat-bold'>Avançar</Text>
                             </TouchableOpacity>
                         </View>
@@ -316,7 +329,7 @@ export function Passo4({ moveStep, customCart, setCustomCart, quantity, setQuant
                             )}
                         </View>
 
-                        <TouchableOpacity onPress={() => { /* Navegar para o carrinho */ }} className="w-full h-12 bg-laranja rounded-full justify-center items-center mt-7 mb-4">
+                        <TouchableOpacity onPress={finalizarCriacao} className="w-full h-12 bg-laranja rounded-full justify-center items-center mt-7 mb-4">
                             <Text className='text-branco font-montserrat-bold'>Adicionar ao carrinho</Text>
                         </TouchableOpacity>
                     </ScrollView>

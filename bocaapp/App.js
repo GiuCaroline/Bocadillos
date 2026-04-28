@@ -21,6 +21,7 @@ import { Esqueci } from './src/screens/Esqueci';
 import { Home } from './src/screens/Home';
 import { Loja } from './src/screens/Loja';
 import { Especial } from './src/screens/Especial';
+import { Carrinho } from './src/screens/Carrinho';
 
 const Stack = createNativeStackNavigator();
 
@@ -50,6 +51,7 @@ export default function App() {
         <Stack.Screen name="Home" component={Home} options={{ headerShown: false }} />
         <Stack.Screen name="Loja" component={Loja} options={{ headerShown: false }} />
         <Stack.Screen name="Especial" component={Especial} options={{ headerShown: false }} />
+        <Stack.Screen name="Carrinho" component={Carrinho} options={{ headerShown: false }} />
       </Stack.Navigator>
       <StatusBar style="light" />
     </NavigationContainer>
