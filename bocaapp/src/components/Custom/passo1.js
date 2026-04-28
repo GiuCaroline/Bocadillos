@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, Modal, StyleSheet } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, Image, ScrollView, Animated, PanResponder, StyleSheet, Dimensions } from 'react-native';
 import { Plus, Minus, FileImage, X } from "phosphor-react-native";
 
-export function Passo1({ moveStep }) {
-    const [quantity, setQuantity] = useState(1);
-    const [modalVisible, setModalVisible] = useState(false);
-    const [customCart, setCustomCart] = useState({
-        quantity: quantity,
-        package: { package_size: 8, package_price: 0 },
-        description: ''
-    });
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const BOTTOM_SHEET_MAX_HEIGHT = SCREEN_HEIGHT * 0.3; // Altura quando totalmente aberto
+const BOTTOM_SHEET_MIN_HEIGHT = 35; // Altura quando colado na NAV ("espiando")
+const MAX_UPWARD_TRANSLATE_Y = 0;
+const MAX_DOWNWARD_TRANSLATE_Y = BOTTOM_SHEET_MAX_HEIGHT - BOTTOM_SHEET_MIN_HEIGHT;
+
+export function Passo1({ moveStep, customCart, setCustomCart, quantity, setQuantity }) {
 
     let customTax = customCart.base ? ((customCart.base.price * 0.25) * customCart.package.package_size) : 0;
     let packPrice = customCart.base ? 
@@ -47,8 +46,44 @@ export function Passo1({ moveStep }) {
         }
     }
 
+    const animatedValue = useRef(new Animated.Value(MAX_DOWNWARD_TRANSLATE_Y)).current;
+    const lastGestureDy = useRef(MAX_DOWNWARD_TRANSLATE_Y);
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => false,
+            onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 10,
+            onPanResponderGrant: () => {
+                animatedValue.setOffset(lastGestureDy.current);
+                animatedValue.setValue(0);
+            },
+            onPanResponderMove: (e, gesture) => animatedValue.setValue(gesture.dy),
+            onPanResponderRelease: (e, gesture) => {
+                animatedValue.flattenOffset();
+                const currentY = lastGestureDy.current + gesture.dy;
+                
+                if (gesture.vy < -0.5 || currentY < MAX_DOWNWARD_TRANSLATE_Y / 2) {
+                    openSheet();
+                } else {
+                    closeSheet();
+                }
+            }
+        })
+    ).current;
+
+    const openSheet = () => {
+        Animated.spring(animatedValue, { toValue: MAX_UPWARD_TRANSLATE_Y, useNativeDriver: true, friction: 8, tension: 50 }).start();
+        lastGestureDy.current = MAX_UPWARD_TRANSLATE_Y;
+    };
+
+    const closeSheet = () => {
+        Animated.spring(animatedValue, { toValue: MAX_DOWNWARD_TRANSLATE_Y, useNativeDriver: true, friction: 8, tension: 50 }).start();
+        lastGestureDy.current = MAX_DOWNWARD_TRANSLATE_Y;
+    };
+
     return (
-        <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }} className='flex-1 w-full'>
+        <View className="flex-1 w-full">
+            <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 24 }} className='flex-1 w-full'>
             <View className='flex-col w-full'>
                 <View className='w-full'>
                     <View className="w-full items-center">
@@ -105,198 +140,174 @@ export function Passo1({ moveStep }) {
                         </View>
                     </View>
 
-                    <View className="flex-row justify-between gap-4 w-full px-4 mb-4">
+                    <View className="flex-row justify-between gap-20 w-full mb-[15%] mt-[20%]">
                         <TouchableOpacity disabled className='flex-1 h-12 justify-center items-center opacity-50 bg-gray-200 rounded-full'>
-                            <Text className='text-cinza font-montserrat-bold'>Regredir</Text>
+                            <Text className='text-cinza font-montserrat-bold'>Voltar</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity onPress={() => { moveStep(1) }} className='flex-1 h-12 justify-center items-center bg-marron rounded-full'>
+                        <TouchableOpacity onPress={() => { moveStep(1) }} className='flex-1 h-12 justify-center items-center bg-laranja rounded-full'>
                             <Text className='text-branco font-montserrat-bold'>Avançar</Text>
                         </TouchableOpacity>
                     </View>
-
-                    <View className="px-4 mt-2">
-                        <TouchableOpacity onPress={() => setModalVisible(true)} className='w-full h-12 bg-white border border-laranja rounded-full justify-center items-center'>
-                            <Text className='text-laranja font-montserrat-bold'>Ver resumo da criação</Text>
-                        </TouchableOpacity>
-                    </View>
                 </View>
-
-                {/* BOTTOM SHEET MODAL */}
-                <Modal
-                    animationType="slide"
-                    transparent={true}
-                    visible={modalVisible}
-                    onRequestClose={() => setModalVisible(false)}
-                >
-                    <View className="flex-1 justify-end bg-black/50">
-                        {/* Área clicável invisível para fechar o modal ao clicar fora */}
-                        <TouchableOpacity style={{ flex: 1 }} onPress={() => setModalVisible(false)} activeOpacity={1} />
-                        
-                        <View className="bg-branco rounded-t-[30px] p-6 shadow-lg h-[80%] w-full">
-                            <View className="items-center mb-6">
-                                <View className="w-12 h-1.5 bg-gray-300 rounded-full" />
-                            </View>
-                            
-                            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-                                <View className="flex-row justify-between items-center mb-4">
-                                    <Text className={`text-2xl font-montserrat-bold text-cinza text-left`}>
-                                        {customCart.base ? "Sua criação açucarada" : "Resumo vazio"}
-                                    </Text>
-                                    <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                        <X size={24} color="#2e2e2e" />
-                                    </TouchableOpacity>
-                                </View>
-                                
-                                {customCart.base ? (
-                                    <Image
-                                        source={customCart.base.image}
-                                        className="mt-2 w-full h-40 rounded-xl"
-                                        resizeMode="contain"
-                                    />
-                                ) : (
-                                    <View className="flex items-center justify-center h-40 bg-gray-200 rounded-xl w-full">
-                                        <FileImage size={40} color="#a1a1aa" />
-                                    </View>
-                                )}
-
-                                <Text className='text-cinza font-montserrat-bold text-lg mt-5'>Tipo de base</Text>
-                                {customCart.base?.name ? (
-                                    <Text className="text-cinza font-montserrat text-base text-left">{customCart.base.name}</Text>
-                                ) : (
-                                    <View className="h-3 bg-gray-300 rounded-md w-48 mt-2" />
-                                )}
-
-                                <View className={`${customCart.package ? 'flex' : 'hidden'}`}>
-                                    <Text className='text-cinza font-montserrat-bold text-lg mt-5'>Tamanho do pacote</Text>
-                                    {customCart.package?.package_size ? (
-                                        <Text className="text-cinza font-montserrat text-base text-left">{customCart.package.package_size} unidades</Text>
-                                    ) : (
-                                        <View className="h-3 bg-gray-300 rounded-md w-48 mt-2" />
-                                    )}
-                                </View>
-
-                                <View className={`${customCart.flavors ? 'flex' : 'hidden'}`}>
-                                    <Text className='text-cinza font-montserrat-bold text-lg mt-5'>Sabores</Text>
-                                    <Text className="text-base text-cinza font-montserrat text-left">
-                                        {customCart.flavors ? customCart.flavors.join(", ") : ''}
-                                    </Text>
-                                </View>
-
-                                <View className={`${customCart.color ? 'flex' : 'hidden'}`}>
-                                    <Text className='text-cinza font-montserrat-bold text-lg mt-5'>Cor principal</Text>
-                                    <View className='flex flex-row gap-2 mt-2'>
-                                        {customCart.color?.map((color, index) => (
-                                            <View
-                                                key={index}
-                                                style={{ backgroundColor: color.code }}
-                                                className="w-6 h-6 border border-gray-300 rounded-full"
-                                            ></View>
-                                        ))}
-                                    </View>
-                                </View>
-
-                                <View className={`${customCart.details ? 'flex' : 'hidden'}`}>
-                                    <Text className='text-cinza font-montserrat-bold text-lg mt-5'>Detalhes</Text>
-                                    <Text className="text-base text-cinza font-montserrat text-left">
-                                        {customCart.details ? customCart.details.join(", ") : ''}
-                                    </Text>
-                                </View>
-
-                                <View className={`${customCart.description ? 'flex' : 'hidden'}`}>
-                                    <Text className='text-cinza font-montserrat-bold text-lg mt-5'>Descrição</Text>
-                                    <Text className="text-base text-cinza font-montserrat text-left">
-                                        {customCart.description ? customCart.description : ''}
-                                    </Text>
-                                </View>
-
-                                <View className="mt-6 mb-4 h-[1px] w-full bg-gray-200 rounded-full"></View>
-
-                                <View className="flex-row justify-between items-center">
-                                    <Text className="text-sm text-cinza text-left font-montserrat-bold">
-                                        Preço base
-                                    </Text>
-                                    {customCart.base?.price ? (
-                                        <Text className="text-sm text-gray-500 text-right font-montserrat-medium">
-                                            R${customCart.base.price.toFixed(2)}
-                                        </Text>
-                                    ) : (
-                                        <View className="h-3 bg-gray-300 rounded-md w-16" />
-                                    )}
-                                </View>
-
-                                <View className="flex-row justify-between items-center mt-2">
-                                    <Text className="text-sm text-cinza text-left font-montserrat-bold">
-                                        Taxa de customização
-                                    </Text>
-                                    {customCart.base ? (
-                                        <Text className="text-sm text-gray-500 text-right font-montserrat-medium">
-                                            R${customTax.toFixed(2)}
-                                        </Text>
-                                    ) : (
-                                        <View className="h-3 bg-gray-300 rounded-md w-16" />
-                                    )}
-                                </View>
-
-                                <View className={`${customCart.package ? 'flex-row' : 'hidden'} justify-between items-center mt-2`}>
-                                    <Text className="text-sm text-cinza text-left font-montserrat-bold">
-                                        Upgrade de pacote
-                                    </Text>
-                                    <Text className="text-sm text-gray-500 text-right font-montserrat-medium">
-                                        {customCart.package ? `R$${customCart.package.package_price.toFixed(2)}` : ''}
-                                    </Text>
-                                </View>
-
-                                <View className="mt-4 mb-4 h-[1px] w-full bg-gray-200 rounded-full"></View>
-
-                                <View className="flex-row justify-between items-center mt-1">
-                                    <Text className="text-base text-cinza text-left font-montserrat-bold">
-                                        Total por pacote
-                                    </Text>
-                                    {customCart.package ? (
-                                        <Text className="text-base text-laranja text-right font-montserrat-bold">
-                                            {customCart.base ? `R$${packPrice.toFixed(2)}` : ''}
-                                        </Text>
-                                    ) : (
-                                        <View className="h-3 bg-laranja opacity-50 rounded-md w-16" />
-                                    )}
-                                </View>
-
-                                <View className="flex-row justify-between items-center mt-2">
-                                    <Text className="text-sm text-cinza text-left font-montserrat-bold">
-                                        Quantidade de pacotes
-                                    </Text>
-                                    <View className="flex-row items-center gap-3">
-                                        <TouchableOpacity onPress={() => { decreaseQuantity() }} className="flex items-center justify-center w-8 h-8 rounded-md bg-transparent border-gray-300 border">
-                                            <Minus color="#2e2e2e" size={16} />
-                                        </TouchableOpacity>
-                                        <Text className="text-cinza font-montserrat-semibold">{quantity}</Text>
-                                        <TouchableOpacity onPress={() => { increaseQuantity() }} className="flex items-center justify-center w-8 h-8 rounded-md bg-transparent border-gray-300 border">
-                                            <Plus color="#2e2e2e" size={16} />
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-
-                                <View className="flex-row justify-between items-center mt-7">
-                                    <Text className='text-cinza font-montserrat-bold text-xl'>Total da compra</Text>
-                                    {customCart.base ? (
-                                        <Text className="text-xl text-laranja text-right font-montserrat-extrabold">
-                                            R${(packPrice * quantity).toFixed(2)}
-                                        </Text>
-                                    ) : (
-                                        <View className="h-4 bg-laranja opacity-50 rounded-md w-24" />
-                                    )}
-                                </View>
-
-                                <TouchableOpacity className='w-full h-12 bg-laranja rounded-full justify-center items-center mt-7 mb-4'>
-                                    <Text className='text-branco font-montserrat-bold'>Adicionar ao carrinho</Text>
-                                </TouchableOpacity>
-                            </ScrollView>
-                        </View>
-                    </View>
-                </Modal>
             </View>
         </ScrollView>
+
+        {/* BOTTOM SHEET INTERATIVA */}
+        <Animated.View style={[styles.bottomSheet, { transform: [{ translateY: animatedValue }] }]}>
+            <View {...panResponder.panHandlers}>
+                <TouchableOpacity 
+                    activeOpacity={1} 
+                    onPress={() => {
+                        if (lastGestureDy.current === MAX_DOWNWARD_TRANSLATE_Y) openSheet();
+                        else closeSheet();
+                    }} 
+                    className="w-full bg-laranja items-center justify-center h-[85px] rounded-t-[30px]"
+                >
+                    <View className="w-20 h-1.5 bg-[#f0f0f0] opacity-80 rounded-full" />
+                    <Text className='mt-[8%] font-montserrat-bold text-[18px]'>Sua criação</Text>
+                </TouchableOpacity>
+            </View>
+                    
+            <View className="bg-background w-full flex-1 px-4">
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                    <View className='flex-row items-center'>
+                        {customCart.base ? (
+                            <Image
+                                source={customCart.base.image}
+                                className="mt-[5%] w-40 h-40 rounded-[20px]"
+                                resizeMode="cover"
+                            />
+                        ) : (
+                            <View className="flex items-center justify-center w-40 h-40 bg-gray-200 rounded-[20px] mt-[5%]">
+                                <FileImage size={40} color="#a1a1aa" />
+                            </View>
+                        )}
+
+                        <View className='ml-[2%] mt-[5%]'>
+                            <Text className='text-cinza font-montserrat-bold text-[14px]'>Tamanho</Text>
+                            {customCart.base?.name ? (
+                                <Text className="text-cinza font-montserrat-light text-base text-left mt-[-4%]">{customCart.base.name}</Text>
+                            ) : (
+                                <View className="h-3 bg-gray-300 rounded-md w-48 mt-[-2%]" />
+                            )}
+
+                            <View className={`${customCart.package ? 'flex' : 'hidden'}`}>
+                                <Text className='text-cinza font-montserrat-bold text-[14px] mt-[2%]'>Tamanho do pacote</Text>
+                                {customCart.package?.package_size ? (
+                                    <Text className="text-cinza font-montserrat-light text-base text-left mt-[-4%]">{customCart.package.package_name} ({customCart.package.package_size} uni.)</Text>
+                                ) : (
+                                    <View className="h-3 bg-gray-300 rounded-md w-48 mt-[-5%]" />
+                                )}
+                            </View>
+
+                             <View className={`${customCart.flavors && customCart.flavors.length > 0 ? 'flex' : 'hidden'}`}>
+                                <Text className='text-cinza font-montserrat-bold text-lg mt-[2%]'>Sabores</Text>
+                                <Text className="text-sm text-cinza font-montserrat-light text-left mt-[-4%]">
+                                    {customCart.flavors && customCart.flavors.length > 0 ? (
+                                        <Text>
+                                            <Text className="underline">{customCart.flavors[0]}</Text>
+                                            {customCart.flavors.length > 1 ? `, ${customCart.flavors.slice(1).join(", ")}` : ''}
+                                        </Text>
+                                    ) : ''}
+                                </Text>
+                            </View>
+
+                            <View className={`${customCart.description ? 'flex' : 'hidden'}`}>
+                                <Text className='text-cinza font-montserrat-bold text-lg mt-[2%]'>Modo de preparo</Text>
+                                <Text className="text-base text-cinza font-montserrat text-left">
+                                    {customCart.description ? customCart.description : ''}
+                                </Text>
+                            </View>
+                        </View>
+                    
+                    </View>
+
+                        <View className={`${customCart.color ? 'flex' : 'hidden'} mt-6 mb-4 h-[1px] w-full bg-marron rounded-full`}></View>
+
+                        <View className={`${customCart.color ? 'flex-row' : 'hidden'} justify-between items-center`}>
+                            <Text className="text-sm text-cinza text-left font-montserrat-bold">
+                                Preço base
+                            </Text>
+                            {customCart.base?.price ? (
+                                <Text className="text-sm text-gray-500 text-right font-montserrat-medium">
+                                    R${customCart.base.price.toFixed(2)}
+                                </Text>
+                            ) : (
+                                <View className="h-3 bg-gray-300 rounded-md w-16" />
+                            )}
+                        </View>
+
+                        <View className={`${customCart.color ? 'flex-row' : 'hidden'}  justify-between items-center mt-2`}>
+                            <Text className="text-sm text-cinza text-left font-montserrat-bold">
+                                Taxa de customização
+                            </Text>
+                            {customCart.base ? (
+                                <Text className="text-sm text-gray-500 text-right font-montserrat-medium">
+                                    R${customTax.toFixed(2)}
+                                </Text>
+                            ) : (
+                                <View className="h-3 bg-gray-300 rounded-md w-16" />
+                            )}
+                        </View>
+
+                        <View className={`${customCart.color ? 'flex-row' : 'hidden'} justify-between items-center mt-2`}>
+                            <Text className="text-sm text-cinza text-left font-montserrat-bold">
+                                Upgrade de pacote
+                            </Text>
+                            <Text className="text-sm text-gray-500 text-right font-montserrat-medium">
+                                {customCart.package ? `R$${customCart.package.package_price.toFixed(2)}` : ''}
+                            </Text>
+                        </View>
+
+                        <View className={`${customCart.color ? 'flex' : 'hidden'} mt-4 mb-4 h-[1px] w-full bg-marron rounded-full`}></View>
+
+                        <View className={`${customCart.color ? 'flex-row' : 'hidden'} justify-between items-center mt-1`}>
+                            <Text className="text-base text-cinza text-left font-montserrat-bold">
+                                Total por pacote
+                            </Text>
+                            {customCart.package ? (
+                                <Text className="text-base text-laranja text-right font-montserrat-bold">
+                                    {customCart.base ? `R$${packPrice.toFixed(2)}` : ''}
+                                </Text>
+                            ) : (
+                                <View className="h-3 bg-laranja opacity-50 rounded-md w-16" />
+                            )}
+                        </View>
+
+                        <View className={`${customCart.color ? 'flex-row' : 'hidden'} justify-between items-center mt-2`}>
+                            <Text className="text-sm text-cinza text-left font-montserrat-bold">
+                                Quantidade de pacotes
+                            </Text>
+                            <View className="flex-row items-center gap-3">
+                                <TouchableOpacity onPress={() => { decreaseQuantity() }} className="flex items-center justify-center w-8 h-8 rounded-md bg-transparent border-gray-300 border">
+                                    <Minus color="#2e2e2e" size={16} />
+                                </TouchableOpacity>
+                                <Text className="text-cinza font-montserrat-semibold">{quantity}</Text>
+                                <TouchableOpacity onPress={() => { increaseQuantity() }} className="flex items-center justify-center w-8 h-8 rounded-md bg-transparent border-gray-300 border">
+                                    <Plus color="#2e2e2e" size={16} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        <View className={`${customCart.color ? 'flex-row' : 'hidden'} justify-between items-center mt-7`}>
+                            <Text className='text-cinza font-montserrat-bold text-xl'>Total da compra</Text>
+                            {customCart.base ? (
+                                <Text className="text-xl text-laranja text-right font-montserrat-extrabold">
+                                    R${(packPrice * quantity).toFixed(2)}
+                                </Text>
+                            ) : (
+                                <View className="h-4 bg-laranja opacity-50 rounded-md w-24" />
+                            )}
+                        </View>
+
+                        <TouchableOpacity className={`${customCart.color ? 'flex' : 'hidden'} w-full h-12 bg-laranja rounded-full justify-center items-center mt-7 mb-4`}>
+                            <Text className='text-branco font-montserrat-bold'>Adicionar ao carrinho</Text>
+                        </TouchableOpacity>
+                    </ScrollView>
+                </View>
+            </Animated.View>
+        </View>
     )
 }
 
@@ -315,4 +326,16 @@ const styles = StyleSheet.create({
     // Android
     elevation: 6,
   },
+  bottomSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0, 
+    height: BOTTOM_SHEET_MAX_HEIGHT,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 10,
+  }
 });
