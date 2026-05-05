@@ -8,15 +8,27 @@ export default function CardCart({ cartinfo, products, onIncrease, onDecrease, o
     const unitPrice = cartinfo.size === 'unit' ? product?.price : product?.package_price;
     const cartPrice = Number(unitPrice) || 0;
 
+    // Suporta imagem local (require) ou URL remota (string), lendo image ou image_url
+    const imageSource = (() => {
+        const src = product?.image || product?.image_url;
+        if (!src) return null;
+        if (typeof src === 'string') return { uri: src };
+        return src; // require() retorna um número
+    })();
+
     return (
         <View className="p-5 rounded-xl border border-(--c25) bg-transparent w-full">
             <View className="flex-row gap-4">
                 <View className="w-[80px] h-[80px] aspect-square rounded-lg overflow-hidden">
-                    <Image
-                        source={typeof product?.image === 'string' ? { uri: product.image } : product?.image}
-                        className="w-full h-full"
-                        resizeMode="cover"
-                    />
+                    {imageSource ? (
+                        <Image
+                            source={imageSource}
+                            className="w-full h-full"
+                            resizeMode="cover"
+                        />
+                    ) : (
+                        <View className="w-full h-full bg-gray-200 rounded-lg" />
+                    )}
                 </View>
 
                 <View className='flex-col flex-1'>
@@ -67,22 +79,22 @@ export default function CardCart({ cartinfo, products, onIncrease, onDecrease, o
 
                     <View className="flex-row items-center justify-between mt-4">
                         <View className="flex-row items-center gap-3">
-                            <TouchableOpacity 
-                                onPress={() => onDecrease && onDecrease(cartinfo.id, cartinfo.size)} 
+                            <TouchableOpacity
+                                onPress={() => onDecrease && onDecrease(cartinfo.id, cartinfo.size)}
                                 className="items-center justify-center w-7 h-7 rounded-md bg-transparent border-(--c27) border dark:border-white"
                             >
-                                <Minus className="dark:text-white text-(--c27)" size={14}/>
+                                <Minus className="dark:text-white text-(--c27)" size={14} />
                             </TouchableOpacity>
 
                             <Text className="dark:text-white text-(--c27) font-bold text-[14px]">
                                 {cartinfo.quantity}
                             </Text>
 
-                            <TouchableOpacity 
-                                onPress={() => onIncrease && onIncrease(cartinfo.id, cartinfo.size)} 
+                            <TouchableOpacity
+                                onPress={() => onIncrease && onIncrease(cartinfo.id, cartinfo.size)}
                                 className="items-center justify-center w-7 h-7 rounded-md bg-transparent border-(--c27) border dark:border-white"
                             >
-                                <Plus className="dark:text-white text-(--c27)" size={14}/>
+                                <Plus className="dark:text-white text-(--c27)" size={14} />
                             </TouchableOpacity>
                         </View>
 
@@ -98,5 +110,5 @@ export default function CardCart({ cartinfo, products, onIncrease, onDecrease, o
                 </View>
             </View>
         </View>
-    )
+    );
 }
