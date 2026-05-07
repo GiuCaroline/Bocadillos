@@ -3,19 +3,8 @@ import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet } from 
 import { Tag, ShieldCheck, ArrowLeft, Handbag } from "phosphor-react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CardCart from '../components/cardCart';
-
-const mockDatabase = [
-    { id: 1, name: 'Bolinho de queijo', descript: 'Massa de batata, recheio de queijo.', price: 5.00, image: require('../../assets/bolinhodequeijo.png'), package_size: 8, package_price: 40.00 },
-    { id: 2, name: 'Coxinha', descript: 'Massa de batata, recheio de frango com catupiry cremoso.', price: 2.00, image: require('../../assets/coxinhadefrangocremosa.webp'), package_size: 10, package_price: 15.00 }
-];
-
-const fetchSnacksMock = () => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve(mockDatabase);
-        }, 600);
-    });
-};
+import { BASE_IMAGES } from '../components/Custom/passo1';
+import { apiGetProducts } from '../services/api';
 
 export function Carrinho({ navigation }) {
     const [cart, setCart] = useState([]);
@@ -55,26 +44,23 @@ export function Carrinho({ navigation }) {
         const sabores = raw.flavors?.length ? `Sabores: ${raw.flavors.join(', ')}` : '';
         const cores = raw.color?.length ? `Cores: ${raw.color.map(c => c.name).join(', ')}` : '';
         const detalhes = raw.details?.length ? `Detalhes: ${raw.details.join(', ')}` : '';
-        const fullDesc = [
-            raw.description,
-            sabores,
-            cores,
-            detalhes
-        ].filter(Boolean).join('\n');
+        const fullDesc = [raw.description, sabores, cores, detalhes].filter(Boolean).join('\n');
 
         return {
             id: 'custom',
             name: raw.base?.name || 'Salgado customizado',
             descript: fullDesc || 'Salgado personalizado',
             price: raw.base?.price || 0,
-            image: raw.base?.image || require('../../assets/pequeno.png'),
+            // Recupera o require() local pelo nome do tamanho (require não sobrevive ao AsyncStorage)
+            image: BASE_IMAGES[raw.base?.name] || null,
+            image_url: null,
             package_size,
             package_price: packPrice,
             isCustom: true,
             flavors: raw.flavors || [],
             colors: raw.color || [],
             details: raw.details || []
-        }
+        };
     }
 
     const subtotal = cart.reduce((total, item) => {
@@ -84,15 +70,14 @@ export function Carrinho({ navigation }) {
         return total + price * item.quantity;
     }, 0);
 
+    // Busca produtos da API (substitui o mockDatabase)
     useEffect(() => {
         const carregaSalgados = async () => {
-            const data = await fetchSnacksMock();
-            if (data && data.length > 0) {
-                const mapSnacks = data.map((snack) => {
-                    const { id, name, descript, price, image, package_size, package_price } = snack;
-                    return { id, name, descript, price, image, package_size, package_price };
-                });
-                setSnacks(mapSnacks);
+            try {
+                const data = await apiGetProducts();
+                setSnacks(data);
+            } catch (error) {
+                console.error('Erro ao carregar produtos no carrinho:', error.message);
             }
         };
         carregaSalgados();
@@ -102,10 +87,10 @@ export function Carrinho({ navigation }) {
         const loadInitialCart = async () => {
             const saved = await AsyncStorage.getItem("cart");
             const savedCart = saved ? JSON.parse(saved) : [];
-            
+
             const raw = await AsyncStorage.getItem('customCart');
             const rawCustom = raw ? JSON.parse(raw) : null;
-            
+
             let merged = [...savedCart];
             if (rawCustom && rawCustom.base) {
                 const exists = merged.some(i => i.id === 'custom');
@@ -145,16 +130,13 @@ export function Carrinho({ navigation }) {
             const raw = await AsyncStorage.getItem('customCart');
             let parsedRaw = raw ? JSON.parse(raw) : null;
             if (!parsedRaw) return;
-            
             parsedRaw.quantity = (parsedRaw.quantity || 1) + 1;
             await AsyncStorage.setItem('customCart', JSON.stringify(parsedRaw));
-            
             setCart(prev => prev.map(item =>
                 item.id === 'custom' ? { ...item, quantity: parsedRaw.quantity } : item
             ));
             return;
         }
-
         const saved = await AsyncStorage.getItem("cart");
         const savedCart = saved ? JSON.parse(saved) : [];
         const idx = savedCart.findIndex(item => item.id === id && item.size === size);
@@ -168,16 +150,13 @@ export function Carrinho({ navigation }) {
             const raw = await AsyncStorage.getItem('customCart');
             let parsedRaw = raw ? JSON.parse(raw) : null;
             if (!parsedRaw) return;
-            
             parsedRaw.quantity = Math.max(1, (parsedRaw.quantity || 1) - 1);
             await AsyncStorage.setItem('customCart', JSON.stringify(parsedRaw));
-            
             setCart(prev => prev.map(item =>
                 item.id === 'custom' ? { ...item, quantity: parsedRaw.quantity } : item
             ));
             return;
         }
-
         const saved = await AsyncStorage.getItem("cart");
         const savedCart = saved ? JSON.parse(saved) : [];
         const idx = savedCart.findIndex(item => item.id === id && item.size === size);
@@ -193,7 +172,6 @@ export function Carrinho({ navigation }) {
             setSnackProducts(prev => prev.filter(p => p.id !== 'custom'));
             return;
         }
-
         const saved = await AsyncStorage.getItem("cart");
         const savedCart = saved ? JSON.parse(saved) : [];
         const newCart = savedCart.filter(item => !(item.id === id && item.size === size));
@@ -221,14 +199,14 @@ export function Carrinho({ navigation }) {
                 <View className="flex-col gap-5 mb-8">
                     {cart.length > 0 ? (
                         cart.map((cartInfo, index) => (
-                            <CardCart 
-                                key={index} 
-                                id={cartInfo.id} 
-                                cartinfo={cartInfo} 
-                                products={snackProducts} 
-                                onIncrease={handleIncrease} 
-                                onDecrease={handleDecrease} 
-                                onRemove={handleRemove} 
+                            <CardCart
+                                key={index}
+                                id={cartInfo.id}
+                                cartinfo={cartInfo}
+                                products={snackProducts}
+                                onIncrease={handleIncrease}
+                                onDecrease={handleDecrease}
+                                onRemove={handleRemove}
                             />
                         ))
                     ) : (
@@ -273,7 +251,7 @@ export function Carrinho({ navigation }) {
                     <View className="flex-row justify-between mb-2">
                         <Text className="text-[14px] text-cinza font-montserrat-medium">Frete</Text>
                         <Text className={`text-[14px] font-montserrat-medium ${frete === 0 ? 'text-laranja font-bold' : 'text-[#969696]'}`}>
-                            {frete === 0 ? 'Grátis' : `R${frete.toFixed(2)}`}
+                            {frete === 0 ? 'Grátis' : `R$${frete.toFixed(2)}`}
                         </Text>
                     </View>
 
@@ -287,8 +265,8 @@ export function Carrinho({ navigation }) {
                     </View>
 
                     <View className="items-center w-full">
-                        <TouchableOpacity 
-                            onPress={() => navigation.navigate("Pagamento")} 
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate("Pagamento")}
                             className="w-full h-[50px] bg-laranja justify-center items-center rounded-full"
                         >
                             <Text className="text-branco font-montserrat-bold text-[16px]">Continuar pedido</Text>
@@ -309,12 +287,10 @@ export function Carrinho({ navigation }) {
 
 const styles = StyleSheet.create({
     sombra: {
-        // iOS
         shadowColor: '#000',
         shadowOffset: { width: 5, height: 5 },
         shadowOpacity: 0.25,
         shadowRadius: 5,
-        // Android
         elevation: 20,
     }
 });
